@@ -1,0 +1,49 @@
+services:
+  backend:
+    container_name: backend
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      - POSTGRES_HOST=warehouse
+      - POSTGRES_DB=tracker
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - warehouse
+
+  warehouse:
+    container_name: warehouse
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=tracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  db_migrations:
+    container_name: db_migrations
+    build: ./database
+    command: ["npm", "run", "migrate"]
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@warehouse:5432/tracker
+    depends_on:
+      - warehouse
+
+  frontend:
+    container_name: frontend
+    image: nginx:alpine
+    ports:
+      - "3001:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+
+volumes:
+  postgres-data:

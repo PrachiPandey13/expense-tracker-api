@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Expense Tracker</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
+    .card { max-width: 720px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; }
+    input, button { padding: 10px; margin: 6px 0; width: 100%; box-sizing: border-box; }
+    button { cursor: pointer; }
+    pre { background:#f7f7f7; padding: 12px; border-radius: 10px; overflow:auto; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .muted { color:#6b7280; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Expense Tracker</h1>
+  <p class="muted">Backend API: <code>http://localhost:3000</code> | Frontend: <code>http://localhost:3001</code></p>
+
+  <div class="card">
+    <h2>1) Signup / Login</h2>
+
+    <label>Email</label>
+    <input id="email" value="test@example.com" />
+
+    <label>Password</label>
+    <input id="password" type="password" value="password123" />
+
+    <div class="row">
+      <button id="btnSignup">Signup</button>
+      <button id="btnLogin">Login</button>
+    </div>
+
+    <h3>Token</h3>
+    <pre id="tokenBox">(not logged in)</pre>
+  </div>
+
+  <br/>
+
+  <div class="card">
+    <h2>2) Add Expense</h2>
+
+    <label>Amount</label>
+    <input id="amount" type="number" value="250" />
+
+    <label>Category</label>
+    <input id="category" value="Meals" />
+
+    <label>Description</label>
+    <input id="description" value="Lunch" />
+
+    <button id="btnAdd">Add Expense</button>
+
+    <h3>Expenses</h3>
+    <button id="btnLoad">Load Expenses</button>
+    <pre id="expensesBox">[]</pre>
+  </div>
+
+  <script>
+    const API = "http://localhost:3000";
+    let token = "";
+
+    const tokenBox = document.getElementById("tokenBox");
+    const expensesBox = document.getElementById("expensesBox");
+
+    function setToken(t) {
+      token = t || "";
+      tokenBox.textContent = token ? token : "(not logged in)";
+    }
+
+    async function api(path, method, body) {
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${API}${path}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined
+      });
+
+      const text = await res.text();
+      let data;
+      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+
+      if (!res.ok) throw new Error(typeof data === "string" ? data : JSON.stringify(data));
+      return data;
+    }
+
+    document.getElementById("btnSignup").onclick = async () => {
+      try {
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const out = await api("/auth/signup", "POST", { email, password });
+        alert("Signup OK: " + JSON.stringify(out));
+      } catch (e) {
+        alert("Signup failed: " + e.message);
+      }
+    };
+
+    document.getElementById("btnLogin").onclick = async () => {
+      try {
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const out = await api("/auth/login", "POST", { email, password });
+        setToken(out.token);
+        alert("Login OK");
+      } catch (e) {
+        alert("Login failed: " + e.message);
+      }
+    };
+
+    document.getElementById("btnAdd").onclick = async () => {
+      try {
+        if (!token) return alert("Please login first.");
+        const amount = Number(document.getElementById("amount").value);
+        const category = document.getElementById("category").value;
+        const description = document.getElementById("description").value;
+        const out = await api("/expenses", "POST", { amount, category, description });
+        alert("Expense added: " + JSON.stringify(out));
+      } catch (e) {
+        alert("Add expense failed: " + e.message);
+      }
+    };
+
+    document.getElementById("btnLoad").onclick = async () => {
+      try {
+        if (!token) return alert("Please login first.");
+        const out = await api("/expenses", "GET");
+        expensesBox.textContent = JSON.stringify(out, null, 2);
+      } catch (e) {
+        alert("Load expenses failed: " + e.message);
+      }
+    };
+  </script>
+</body>
+</html>
