@@ -15,7 +15,7 @@ COPY . .
 RUN npm run build
 
 # Make port available to the world outside this container
-EXPOSE 8000
+EXPOSE 3000
 
 # Define the command to run your app
 CMD npm run start:prod
